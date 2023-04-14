@@ -1,0 +1,30 @@
+On Up
+
+:local servername "<pppoe-$user>"
+:local prefixo
+:delay 30s
+:foreach binding in=[/ipv6 dhcp-server binding find status="bound" server="$servername"] do={
+  :set $prefixo [/ipv6 dhcp-server binding get $binding address]
+  :log info "Login=$user   IPv6PD=$prefixo"
+}
+
+On Down
+
+:local servername "<pppoe-$user>"
+/ipv6 dhcp-server binding remove [find server=$servername]
+/ipv6 dhcp-server remove [find numbers=$user]
+
+system scheduler
+
+add interval=1h name=UpdateIPv6PD on-event=":local loginpppoe\r\
+    \n:local prefixo\r\
+    \n:local servername\r\
+    \n:foreach logins in=[/ppp active find] do={\r\
+    \n  :set \$loginpppoe [/ppp active get \$logins name]\r\
+    \n  :set \$servername \"<pppoe-\$loginpppoe>\"\r\
+    \n  :foreach b in=[/ipv6 dhcp-server binding find status=\"bound\" server=\"\$servername\"] do={\r\
+    \n    :set \$prefixo [/ipv6 dhcp-server binding get \$b address]\r\
+    \n    :log info \"Login=\$loginpppoe   IPv6PD=\$prefixo\"\r\
+    \n  }\r\
+    \n}" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=apr/03/2023 \
+    start-time=18:23:00
