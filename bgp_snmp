@@ -1,0 +1,56 @@
+/system script
+add dont-require-permissions=no name=bgp_snmp owner=gabriel policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=":put \"{\\\"pe\
+    er\\\": [\";\r\
+    \n:global lista [/routing bgp peer find];\r\
+    \n:global contador 0;\r\
+    \n:foreach i in=\$lista do={\r\
+    \n  :global disabled [/routing bgp peer get value-name=disabled number=\$i];\r\
+    \n  :global name [/routing bgp peer get value-name=name number=\$i];\r\
+    \n  :global remoteaddress [/routing bgp peer get value-name=remote-address number=\$i];\
+    \r\
+    \n  :global remoteas [/routing bgp peer get value-name=remote-as number=\$i];\r\
+    \n  :global state [/routing bgp peer get value-name=state number=\$i];\r\
+    \n    :if (state = \"idle\") do={:set state 1;};\r\
+    \n    :if (state = \"connect\") do={:set state 2;}\r\
+    \n    :if (state = \"active\") do={:set state 3;}; \r\
+    \n    :if (state = \"opensent\") do={:set state 4;}\r\
+    \n    :if (state = \"openconfirm\") do={:set state 5;}; \r\
+    \n    :if (state = \"established\") do={:set state 6;}\r\
+    \n    :if (disabled = true) do={:set state 1;}\r\
+    \n  :global prefix [/routing bgp peer get value-name=prefix number=\$i];\r\
+    \n    :if (prefix < 1) do={:set prefix 0;}  \r\
+    \n  :global uptime [/routing bgp peer get value-name=uptime number=\$i];\r\
+    \n    :if (uptime < 1) do={:set uptime 0;}\r\
+    \n    :global uptimeseconds 0; :global weekend 0; \r\
+    \n    :global dayend 0; :global weeks 0; :global days 0;\r\
+    \n    :if ([:find \$uptime \"w\" -1] > 0) do={\r\
+    \n      :set weekend [:find \$uptime \"w\" -1];\r\
+    \n      :set weeks [:pick \$uptime 0 \$weekend];\r\
+    \n      :set weekend (\$weekend+1);\r\
+    \n    };\r\
+    \n    :if ([:find \$uptime \"d\" -1] > 0) do={\r\
+    \n      :set dayend [:find \$uptime \"d\" -1];\r\
+    \n      :set days [:pick \$uptime \$weekend \$dayend];\r\
+    \n    };\r\
+    \n    :global time [:pick \$uptime ([:len \$uptime]-8) [:len \$uptime]]; \r\
+    \n    :global hours [:pick \$time 0 2];\r\
+    \n    :global minutes [:pick \$time 3 5];\r\
+    \n    :global seconds [:pick \$time 6 8]; \r\
+    \n    :set uptimeseconds [(\$weeks*86400*7+\$days*86400+\$hours*3600+\$minutes*60+\$sec\
+    onds)];\r\
+    \n \r\
+    \n  :set contador (\$contador + 1);\r\
+    \n  :if ( \$contador < [:len \$lista]) do={\r\
+    \n    :put \"{\\\"Id\\\": \\\"\$contador\\\",\\\"Disabled\\\": \\\"\$disabled\\\",\\\"N\
+    ame\\\": \\\"\$name\\\",\\\"Remote-Address\\\": \\\"\$remoteaddress\\\",\\\"Remote-AS\\\
+    \": \\\"\$remoteas\\\",\\\"State\\\": \\\"\$state\\\",\\\"Prefix\\\": \\\"\$prefix\\\",\
+    \\\"Uptime\\\": \\\"\$uptimeseconds\\\"},\"\r\
+    \n  } else={\r\
+    \n    :put \"{\\\"Id\\\": \\\"\$contador\\\",\\\"Disabled\\\": \\\"\$disabled\\\",\\\"N\
+    ame\\\": \\\"\$name\\\",\\\"Remote-Address\\\": \\\"\$remoteaddress\\\",\\\"Remote-AS\\\
+    \": \\\"\$remoteas\\\",\\\"State\\\": \\\"\$state\\\",\\\"Prefix\\\": \\\"\$prefix\\\",\
+    \\\"Uptime\\\": \\\"\$uptimeseconds\\\"}\"\r\
+    \n  };\r\
+    \n  };\r\
+    \n:put \"]}\";"
